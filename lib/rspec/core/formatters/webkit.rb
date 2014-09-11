@@ -183,9 +183,28 @@ class RSpec::Core::Formatters::WebKit < RSpec::Core::Formatters::BaseTextFormatt
 		return nil if line =~ BACKTRACE_EXCLUDE_PATTERN
 		return line.strip.gsub( /(?<filename>[^:]*\.rb):(?<line>\d*)/ ) do
 			match = $~
-			fullpath = File.expand_path( match[:filename] )
+			relative_path = match[:filename]
+			fullpath = File.expand_path( relative_path )
+			line = match[:line]
+			base_dir = '/opt/wagn'
+    		if relative_path =~ /^\.\/tmp\//
+				
+				real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
+				search_path = "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
+        		results = Dir.glob(search_path).flatten
+				if results.size == 1
+					fullpath = results.first
+					relative_path = fullpath
+					line = line.to_i - 5
+				end
+			end
+			if relative_path.include? 'spec'
+				relative_path = 'spec: ' + File.basename(relative_path)
+			else
+				relative_path = relative_path.sub("#{base_dir}/mod/",'mod: ')
+			end
 			%|<a href="txmt://open?url=file://%s&amp;line=%s">%s:%s</a>| %
-				[ fullpath, match[:line], match[:filename], match[:line] ]
+				[ fullpath, line, relative_path, line ]
 		end
 	end
 
