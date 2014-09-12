@@ -1,9 +1,9 @@
-= A WebKit RSpec Formatter
+= Wagn RSpec Formatter
 
-http://deveiate.org/webkit-rspec-formatter.html
+This is forked from {webkit-rspec-formatter}[http://deveiate.org/webkit-rspec-formatter.html]
+and adds some hacks to make the output more fun for {Wagn}[http://wagn.org] specs.
 
-
-== Description
+== Description of the original gem
 
 This is a formatter for RSpec 2 that takes advantage of features in
 WebKit[http://webkit.org/] to make the output from RSpec in Textmate more
