@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.authors = ["Michael Granger","Philipp Kuehl"]
   s.summary = "a webkit-aware pretty formatter for RSpec"
   s.description   = "a webkit-aware pretty formatter for RSpec with some adaptions for Wagn developers"
-  s.homepage = "https://github.com/xithan/rspec-formatter-webkit"
+  s.homepage = "https://github.com/xithan/wagn-rspec-formatter"
   s.license = <<LICENSE
   Copyright (c) 2009-2014, Michael Granger
   All rights reserved.
