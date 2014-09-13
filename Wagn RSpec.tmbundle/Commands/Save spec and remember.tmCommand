@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>saveActiveFile</string>
+	<key>command</key>
+	<string>#!/usr/bin/env bash
+
+. "$TM_BUNDLE_SUPPORT/lib/init-command"
+
+cat &lt;&lt;'RUBYEOF' &gt; /tmp/textmate-command-$$.rb
+
+require ENV['TM_BUNDLE_SUPPORT'] + "/lib/rspec/mate"
+# Remembers the last _spec.rb file so that 'Run last spec' command 
+# can be activated from any Ruby source file
+
+RSpec::Mate::Runner.new.save_as_last_remembered_file ENV['TM_FILEPATH'], ENV['TM_LINE_NUMBER']
+
+RUBYEOF
+
+${TM_RUBY:-ruby} /tmp/textmate-command-$$.rb; exit_status=$?; rm /tmp/textmate-command-$$.rb; exit $exit_status
+
+</string>
+	<key>input</key>
+	<string>none</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>keyEquivalent</key>
+	<string>~@b</string>
+	<key>name</key>
+	<string>Set Bookmark</string>
+	<key>outputCaret</key>
+	<string>afterOutput</string>
+	<key>outputFormat</key>
+	<string>text</string>
+	<key>outputLocation</key>
+	<string>toolTip</string>
+	<key>scope</key>
+	<string>source.ruby.rspec, source.ruby</string>
+	<key>uuid</key>
+	<string>AC7FD3DD-A904-4B5B-8B02-4D6F04CD8ED5</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>

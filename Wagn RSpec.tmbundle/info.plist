@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>contactEmailRot13</key>
+	<string>cuvyvcc@tenffpbzzbaf.bet</string>
+	<key>contactName</key>
+	<string>Philipp Kühl</string>
+	<key>description</key>
+	<string>Rspec commands for Wagn (core) developer</string>
+	<key>name</key>
+	<string>Wagn RSpec</string>
+	<key>uuid</key>
+	<string>18D0322E-DC31-4B8C-8FA5-7B7E6566B701</string>
+</dict>
+</plist>
