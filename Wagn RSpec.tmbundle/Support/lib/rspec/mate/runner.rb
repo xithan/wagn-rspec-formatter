@@ -33,7 +33,7 @@ module RSpec
         
         iterm_command= wagn_command(options).gsub!('\\\\','\\\\\\\\\\\\\\\\')
         #system %(osascript -e 'tell application "iTerm"' -e 'make new terminal' -e 'tell the first terminal' -e 'activate current session' -e 'launch session "Default Session"' -e 'tell the last session' -e 'write text "cd #{project_directory}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
-        system %(osascript -e 'tell application "iTerm"' -e 'tell the first terminal' -e 'activate current session' -e 'tell the last session' -e 'write text "cd #{project_directory}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
+        system %(osascript -e 'tell application "iTerm"' -e 'make new terminal' -e 'tell the first terminal' -e 'activate current session' -e 'tell the last session' -e 'write text "cd #{project_directory}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
       end
 
       def run_focussed(stdout, options={})
