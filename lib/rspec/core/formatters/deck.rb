@@ -11,7 +11,13 @@ require 'rspec/core/pending'
 
 
 class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
+    RSpec::Core::Formatters.register self, :start, :example_group_started, :start_dump,
+                        :example_started, :example_passed, :example_failed,
+                        :example_pending, :dump_summary, :dump_failures
+
 	include ERB::Util
+							
+
 
 	# Version constant
 	VERSION = '2.4.0'
@@ -79,16 +85,17 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
 
 	### Start the page by rendering the header.
-	def start( example_count )
-		@output.puts self.render_header( example_count )
+	def start( notification )
+		@output.puts self.render_header( notification.count )
 		@output.flush
 	end
 
 
 	### Callback called by each example group when it's entered --
-	def example_group_started( example_group )
+	def example_group_started( event )
 		super
-		nesting_depth = example_group.ancestors.length
+		example_group=event.group
+		nesting_depth = event.group.ancestors.length
 
 		# Close the previous example groups if this one isn't a
 		# descendent of the previous one
@@ -107,15 +114,14 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 		else
 			@output.puts %{<dd class="nested-group"><section class="example-group">}
 		end
-
 		@output.puts %{  <dl>},
 			%{  <dt id="%s">%s</dt>} % [
-				example_group.name.gsub(/[\W_]+/, '-').downcase,
-				h(example_group.description)
+				event.group.name.gsub(/[\W_]+/, '-').downcase,
+				h(event.group.description)
 			]
 		@output.flush
 	end
-	alias_method :add_example_group, :example_group_started
+	#alias_method :add_example_group, :example_group_started
 
 
 	### Fetch any log messages added to the thread-local Array
@@ -125,7 +131,7 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
 
 	### Callback -- called when the examples are finished.
-	def start_dump
+	def start_dump(notification)
 		@previous_nesting_depth.downto( 1 ) do |i|
 			@output.puts "  </dl>",
 			             "</section>"
@@ -137,7 +143,7 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
 
 	### Callback -- called when an example is entered
-	def example_started( example )
+	def example_started( notification )
 		@example_number += 1
 		Thread.current[ 'logger-output' ] ||= []
 		Thread.current[ 'logger-output' ].clear
@@ -145,33 +151,34 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
 
 	### Callback -- called when an example is exited with no failures.
-	def example_passed( example )
+	def example_passed( notification )
 		status = 'passed'
+		example = notification.example
 		@output.puts( @example_templates[:passed].result(binding()) )
 		@output.flush
 	end
 
 
 	### Callback -- called when an example is exited with a failure.
-	def example_failed( example )
-		super
-
+	def example_failed(failure)
+		#super
+		example   = failure.example
 		counter   = self.failcounter += 1
-		exception = example.metadata[:execution_result][:exception]
+		exception = failure.exception
 		extra     = self.extra_failure_content( exception )
 		template  = if exception.is_a?( PENDING_FIXED_EXCEPTION )
 			then @example_templates[:pending_fixed]
 			else @example_templates[:failed]
 			end
-
 		@output.puts( template.result(binding()) )
 		@output.flush
 	end
 
 
 	### Callback -- called when an example is exited via a 'pending'.
-	def example_pending( example )
+	def example_pending( notification )
 		status = 'pending'
+		example = notification.example
 		@output.puts( @example_templates[:pending].result(binding()) )
 		@output.flush
 	end
@@ -228,11 +235,20 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
 
 	### Output the content generated at the end of the run.
-	def dump_summary( duration, example_count, failure_count, pending_count )
-		@output.puts self.render_footer( duration, example_count, failure_count, pending_count )
+	# def dump_summary( duration, example_count, failure_count, pending_count )
+	# 	@output.puts self.render_footer( duration, example_count, failure_count, pending_count )
+	# 	@output.flush
+	# end
+	
+	def dump_summary( summary )
+		@output.puts self.render_footer(
+          summary.duration,
+          summary.example_count,
+          summary.failure_count,
+          summary.pending_count
+        )
 		@output.flush
 	end
-
 
 	### Render the header template in the context of the receiver.
 	def render_header( example_count )
@@ -252,5 +268,4 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 	def load_template( templatepath )
 		return ERB.new( templatepath.read, nil, '%<>' ).freeze
 	end
-
 end # class RSpec::Core::Formatter::WebKitFormatter
