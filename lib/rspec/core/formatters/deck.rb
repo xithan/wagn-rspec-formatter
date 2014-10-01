@@ -10,6 +10,7 @@ require 'rspec/core/formatters/snippet_extractor'
 require 'rspec/core/pending'
 
 
+
 class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
     RSpec::Core::Formatters.register self, :start, :example_group_started, :start_dump,
                         :example_started, :example_passed, :example_failed,
@@ -17,7 +18,6 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
 	include ERB::Util
 							
-
 
 	# Version constant
 	VERSION = '2.4.0'
@@ -44,8 +44,7 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 	PENDFIX_EXAMPLE_TEMPLATE = TEMPLATE_DIR + 'pending-fixed.rhtml'
 	FOOTER_TEMPLATE          = TEMPLATE_DIR + 'footer.rhtml'
 
-	# Pattern to match for excluding lines from backtraces
-	BACKTRACE_EXCLUDE_PATTERN = %r{spec/mate|textmate-command|rspec(-(core|expectations|mocks))?/}
+	BACKTRACE_EXCLUDE_PATTERN = %r{\.gem|spec/mate|textmate-command|rspec(-(core|expectations|mocks))?/}
 
 	# Figure out which class pending-example-fixed errors are (2.8 change)
 	PENDING_FIXED_EXCEPTION = if defined?( RSpec::Core::Pending::PendingExampleFixedError )
@@ -165,6 +164,7 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 		example   = failure.example
 		counter   = self.failcounter += 1
 		exception = failure.exception
+    backtrace = failure.formatted_backtrace.map{|line| backtrace_line(line) }.compact
 		extra     = self.extra_failure_content( exception )
 		template  = if exception.is_a?( PENDING_FIXED_EXCEPTION )
 			then @example_templates[:pending_fixed]
@@ -181,38 +181,6 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 		example = notification.example
 		@output.puts( @example_templates[:pending].result(binding()) )
 		@output.flush
-	end
-
-
-	### Format backtrace lines to include a textmate link to the file/line in question.
-	def backtrace_line( line )
-		return nil unless line = super
-		return nil if line =~ BACKTRACE_EXCLUDE_PATTERN
-		return line.strip.gsub( /(?<filename>[^:]*\.rb):(?<line>\d*)/ ) do
-			match = $~
-			relative_path = match[:filename]
-			fullpath = File.expand_path( relative_path )
-			line = match[:line]
-			base_dir = '/opt/wagn'
-    		if relative_path =~ /^\.\/tmp\//
-				
-				real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
-				search_path = "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
-        		results = Dir.glob(search_path).flatten
-				if results.size == 1
-					fullpath = results.first
-					relative_path = fullpath
-					line = line.to_i - 5
-				end
-			end
-			if relative_path.include? 'spec'
-				relative_path = 'spec: ' + File.basename(relative_path)
-			else
-				relative_path = relative_path.sub("#{base_dir}/mod/",'mod: ')
-			end
-			%|<a href="txmt://open?url=file://%s&amp;line=%s">%s:%s</a>| %
-				[ fullpath, line, relative_path, line ]
-		end
 	end
 
 
@@ -249,6 +217,36 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
         )
 		@output.flush
 	end
+
+  ### Format backtrace lines to include a textmate link to the file/line in question.
+  def backtrace_line( line )
+   return nil if line =~ BACKTRACE_EXCLUDE_PATTERN
+   return line.strip.gsub( /(?<filename>[^:]*\.rb):(?<line>\d*)/ ) do
+     match = $~
+     relative_path = match[:filename]
+     fullpath = File.expand_path( relative_path )
+     line = match[:line]
+     base_dir = '/opt/wagn'
+       if relative_path =~ /^\.\/tmp\//
+
+       real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
+       search_path = "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
+           results = Dir.glob(search_path).flatten
+       if results.size == 1
+         fullpath = results.first
+         relative_path = fullpath
+         line = line.to_i - 5
+       end
+     end
+     if relative_path.include? 'spec'
+       relative_path = 'spec: ' + File.basename(relative_path)
+     else
+       relative_path = relative_path.sub("#{base_dir}/mod/",'mod: ')
+     end
+     %|<a href="txmt://open?url=file://%s&amp;line=%s">%s:%s</a>| %
+       [ fullpath, line, relative_path, line ]
+    end
+  end
 
 	### Render the header template in the context of the receiver.
 	def render_header( example_count )
