@@ -107,7 +107,7 @@ module RSpec
         if wagn_files_arg? options[:files]
           if wagn_rspec?
             argv << '--core-spec'
-          else dec_rspec?
+          else deck_rspec?
             argv << '--spec'
           end
           argv += files_args( options[:files], options[:line] )
