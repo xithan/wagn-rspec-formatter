@@ -230,18 +230,25 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
        if relative_path =~ /^\.\/tmp\//
 
        real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
-       search_path = "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
-           results = Dir.glob(search_path).flatten
-       if results.size == 1
+       core_search_path = "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
+       deck_search_path = "**/#{real_path[1]}#{real_path[2]}"
+#       results = Dir.glob(core_search_path).flatten
+       
+       #results.flatten!
+       if (results = Dir.glob(core_search_path).flatten and results.size == 1) 
          fullpath = results.first
          relative_path = fullpath
+         line = line.to_i - 5
+       elsif (results = Dir.glob(deck_search_path).flatten and results.size == 1)
+         fullpath = fullpath.sub(/tmp\/.*/,results.first)#results.first
+         relative_path = results.first
          line = line.to_i - 5
        end
      end
      if relative_path.include? 'spec'
        relative_path = 'spec: ' + File.basename(relative_path)
      else
-       relative_path = relative_path.sub("#{base_dir}/mod/",'mod: ')
+       relative_path = relative_path.sub("#{base_dir}/",'').sub('mod/','mod: ')
      end
      %|<a href="txmt://open?url=file://%s&amp;line=%s">%s:%s</a>| %
        [ fullpath, line, relative_path, line ]

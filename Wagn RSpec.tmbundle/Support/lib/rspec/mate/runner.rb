@@ -1,6 +1,7 @@
 require 'stringio'
 require 'cgi'
 require 'shellwords'
+require 'json'
 
 module RSpec
   module Mate
@@ -11,7 +12,6 @@ module RSpec
         run(stdout, options)
       end
 
-
       def run_all(stdout, options={})
         run(stdout, options)
       end
@@ -21,41 +21,38 @@ module RSpec
         run(stdout, options)
       end
 
-      def run_last_remembered_file(stdout, options={})
-        options.merge!({:files => [last_remembered_single_file]})
-        run(stdout, options)
+      def run_last_run(stdout, options={})
+        run(stdout, last_rspec_options)
       end
       
-      def debug_last_remembered_file(stdout, options={})
-        options.merge!({:files => [last_remembered_single_file],
-                        :formatter=> 'documentation',
-                        :rescue=> 'true'})
-        
-        iterm_command= wagn_command(options).gsub!('\\\\','\\\\\\\\\\\\\\\\')
-        #system %(osascript -e 'tell application "iTerm"' -e 'make new terminal' -e 'tell the first terminal' -e 'activate current session' -e 'launch session "Default Session"' -e 'tell the last session' -e 'write text "cd #{project_directory}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
-        system %(osascript -e 'tell application "iTerm"' -e 'make new terminal' -e 'tell the first terminal' -e 'activate current session' -e 'tell the last session' -e 'write text "cd #{project_directory}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
-      end
-
-      def run_focussed(stdout, options={})
-        options.merge!(
-          {
+      def set_bookmark
+        options = {
             :files => [single_file],
             :line  => ENV['TM_LINE_NUMBER']
           }
-        )
+          save_rspec_options( options )
+      end
+      
+      def debug_last_run(stdout, options={})
+        dir = options.delete(:project_directory) || project_directory
+        options.merge!(last_rspec_options)
+        options.merge!( { :formatter=> 'documentation',
+                          :rescue=> 'true'})
+                          puts options
+        iterm_command= wagn_command(options).gsub!('\\\\','\\\\\\\\\\\\\\\\')
+        #system %(osascript -e 'tell application "iTerm"' -e 'make new terminal' -e 'tell the first terminal' -e 'activate current session' -e 'launch session "Default Session"' -e 'tell the last session' -e 'write text "cd #{project_directory}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
+        system %(osascript -e 'tell application "iTerm"' -e 'make new terminal' -e 'tell the first terminal' -e 'activate current session' -e 'tell the last session' -e 'write text "cd #{dir}"' -e 'write text "#{iterm_command}"' -e 'end tell' -e 'end tell' -e 'end tell')
+      end
+
+      def run_focussed(stdout, options={})
+        options[:files]  = [single_file]
+        if single_file.match /_spec\.rb$/
+          options[:line] = ENV['TM_LINE_NUMBER'] 
+        end
+        save_rspec_options( options )
         run(stdout, options)
       end
       
-      def run_smart(stdout, options={})
-        if single_file.include? "_spec"
-          save_as_last_remembered_file(single_file,ENV['TM_LINE_NUMBER'])
-          run_focussed(stdout, options)
-        else
-          save_as_last_remembered_file(single_file)
-          options.merge!({:files => [single_file]})
-          run(stdout, options)
-        end
-      end
       
       def wagn_files_arg? files  # files argument for wagn rspec and not for rspec
          files and (wagn_rspec? or deck_rspec?) and (!files.first.include? "_spec" or !File.exists?(files.first))
@@ -107,7 +104,7 @@ module RSpec
         if wagn_files_arg? options[:files]
           if wagn_rspec?
             argv << '--core-spec'
-          else deck_rspec?
+          elsif deck_rspec?
             argv << '--spec'
           end
           argv += files_args( options[:files], options[:line] )
@@ -127,15 +124,15 @@ module RSpec
         stderr     = StringIO.new
         old_stderr = $stderr
         $stderr    = stderr
-        
-        Dir.chdir(project_directory) do
+        dir = options.delete(:project_directory) || project_directory
+        Dir.chdir(dir) do
           if wagn_rspec? or deck_rspec?
             system wagn_command(options)
           elsif use_binstub?
-            system 'bin/rspec', *command_args(options)
+            system 'bin/rspec', *rspec_args(options)
           else
             ::RSpec::Core::Runner.disable_autorun!
-            ::RSpec::Core::Runner.run(command_args(options), stderr, stdout)
+            ::RSpec::Core::Runner.run(rspec_args(options), stderr, stdout)
           end
         end
       rescue Exception => e
@@ -163,28 +160,23 @@ module RSpec
         $stderr = old_stderr
       end
 
-      def save_as_last_remembered_file(file,line=nil)
-        if line and file.include? '_spec'
-          file += ":#{line}"    
-        end
-        File.open(last_remembered_file_cache, "w") do |f|
-          f << file
+      def save_rspec_options options={}
+        options.merge!(:project_directory=>project_directory)
+        File.open(rspec_args_cache, "w") do |f|
+          f << options.to_json
         end
       end
 
-      def last_remembered_file_cache
+      def rspec_args_cache
         "/tmp/textmate_rspec_last_remembered_file_cache.txt"
       end
 
 
     private
       
-      def last_remembered_single_file
-        file = File.read(last_remembered_file_cache).strip
-
-        if file.size > 0
-          File.expand_path(file)
-        end
+      def last_rspec_options
+        args = File.read(rspec_args_cache)
+        JSON.parse( args, :symbolize_names=>true)
       end
 
       def project_directory

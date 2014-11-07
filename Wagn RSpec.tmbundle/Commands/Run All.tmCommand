@@ -32,8 +32,6 @@ ${TM_RUBY:-ruby} /tmp/textmate-command-$$.rb; exit_status=$?; rm /tmp/textmate-c
 	<string>html</string>
 	<key>outputLocation</key>
 	<string>newWindow</string>
-	<key>scope</key>
-	<string>source.ruby</string>
 	<key>uuid</key>
 	<string>87C06410-DCF2-4B0E-8722-A72D28BADE9A</string>
 	<key>version</key>
