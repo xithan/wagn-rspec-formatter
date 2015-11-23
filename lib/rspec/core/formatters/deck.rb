@@ -17,7 +17,7 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
                         :example_pending, :dump_summary, :dump_failures
 
 	include ERB::Util
-							
+
 
 	# Version constant
 	VERSION = '2.4.0'
@@ -207,7 +207,7 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 	# 	@output.puts self.render_footer( duration, example_count, failure_count, pending_count )
 	# 	@output.flush
 	# end
-	
+
 	def dump_summary( summary )
 		@output.puts self.render_footer(
           summary.duration,
@@ -227,21 +227,23 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
      fullpath = File.expand_path( relative_path )
      line = match[:line]
      base_dir = '/opt/wagn'
-       if relative_path =~ /^\.\/tmp\//
+     if relative_path =~ /^\.\/tmp\//
 
-       real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
-       core_search_path = "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
-       deck_search_path = "**/#{real_path[1]}#{real_path[2]}"
-#       results = Dir.glob(core_search_path).flatten
-       
-       #results.flatten!
-       if (results = Dir.glob(core_search_path).flatten and results.size == 1) 
-         fullpath = results.first
-         relative_path = fullpath
+#       real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
+#core_search_path = "#{base_dir}/card/mod/" "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
+#deck_search_path = "**/#{real_path[1]}#{real_path[2]}"
+
+       real_path = relative_path.gsub(/^\.\/tmp\/set\/mod\d+-([^\/]+)/,'\1/set')
+       core_path = File.join base_dir, 'card', 'mod', real_path
+       deck_path = File.join '.', 'mod', real_path
+
+       if File.exist? core_path#(results = Dir.glob(core_search_path).flatten and results.size == 1)
+         fullpath = core_path #results.first
+         relative_path = core_path #fullpath
          line = line.to_i - 5
-       elsif (results = Dir.glob(deck_search_path).flatten and results.size == 1)
-         fullpath = fullpath.sub(/tmp\/.*/,results.first)#results.first
-         relative_path = results.first
+       elsif File.exist? deck_path #(results = Dir.glob(deck_search_path).flatten and results.size == 1)
+         fullpath = deck_path # fullpath.sub(/tmp\/.*/,results.first)#results.first
+         relative_path = deck_path #results.first
          line = line.to_i - 5
        end
      end
