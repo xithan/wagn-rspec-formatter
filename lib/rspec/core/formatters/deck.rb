@@ -9,7 +9,45 @@ require 'rspec/core/formatters/base_text_formatter'
 require 'rspec/core/formatters/snippet_extractor'
 require 'rspec/core/pending'
 
+class WagnPath
+  def initialize relative_path, line
+    @relative_path = relative_path
+    @link_text = relative_path
+    @full_path = File.expand_path relative_path
+    @line = line
+    correct_paths
+  end
 
+  def to_txmt_link
+    %|<a href="txmt://open?url=file://%s&amp;line=%s">%s:%s</a>| %
+      [ @full_path, @line, @link_text, @line ]
+  end
+
+  def gem_dir
+    File.dirname Gem::Specification.find_by_name('wagn').gem_dir
+  end
+
+  private
+
+  def correct_paths
+    if @relative_path =~ %r{^\./tmp}
+      mod_path =
+         @relative_path.gsub(%r{^\./tmp/set/mod\d+-([^/]+)},'\1/set')
+      core_path = File.join gem_dir, 'card', 'mod', mod_path
+  	 	deck_path = File.expand_path(File.join '.', 'mod', mod_path)
+      if File.exist? core_path
+        @full_path = core_path
+        @line = @line.to_i - 5
+      elsif File.exist? deck_path
+        @full_path = deck_path
+        @line = @line.to_i - 5
+      end
+      @link_text = "mod: #{ mod_path }"
+    elsif @relative_path.include? 'spec'
+      @link_text = "spec: #{ File.basename(@relative_path) }"
+    end
+  end
+end
 
 class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
     RSpec::Core::Formatters.register self, :start, :example_group_started, :start_dump,
@@ -220,40 +258,10 @@ class RSpec::Core::Formatters::Deck < RSpec::Core::Formatters::BaseTextFormatter
 
   ### Format backtrace lines to include a textmate link to the file/line in question.
   def backtrace_line( line )
-   return nil if line =~ BACKTRACE_EXCLUDE_PATTERN
-   return line.strip.gsub( /(?<filename>[^:]*\.rb):(?<line>\d*)/ ) do
-     match = $~
-     relative_path = match[:filename]
-     fullpath = File.expand_path( relative_path )
-     line = match[:line]
-     base_dir = '/opt/wagn'
-     if relative_path =~ /^\.\/tmp\//
-
-#       real_path = relative_path.match(/^\.\/tmp\/(\D+)\d+-(.*\.rb)/)
-#core_search_path = "#{base_dir}/card/mod/" "#{base_dir}/**/#{real_path[1]}#{real_path[2]}"
-#deck_search_path = "**/#{real_path[1]}#{real_path[2]}"
-
-       real_path = relative_path.gsub(/^\.\/tmp\/set\/mod\d+-([^\/]+)/,'\1/set')
-       core_path = File.join base_dir, 'card', 'mod', real_path
-       deck_path = File.join '.', 'mod', real_path
-
-       if File.exist? core_path#(results = Dir.glob(core_search_path).flatten and results.size == 1)
-         fullpath = core_path #results.first
-         relative_path = core_path #fullpath
-         line = line.to_i - 5
-       elsif File.exist? deck_path #(results = Dir.glob(deck_search_path).flatten and results.size == 1)
-         fullpath = deck_path # fullpath.sub(/tmp\/.*/,results.first)#results.first
-         relative_path = deck_path #results.first
-         line = line.to_i - 5
-       end
-     end
-     if relative_path.include? 'spec'
-       relative_path = 'spec: ' + File.basename(relative_path)
-     else
-       relative_path = relative_path.sub("#{base_dir}/",'').sub('mod/','mod: ')
-     end
-     %|<a href="txmt://open?url=file://%s&amp;line=%s">%s:%s</a>| %
-       [ fullpath, line, relative_path, line ]
+    return nil if line =~ BACKTRACE_EXCLUDE_PATTERN
+    line.strip.gsub( /(?<filename>[^:]*\.rb):(?<line>\d*)/ ) do
+      match = $~
+      WagnPath.new(match[:filename], match[:line]).to_txmt_link
     end
   end
 
